@@ -1,0 +1,37 @@
+# Agent related files (strictly ignored for git/GitHub)
+agents/
+workflows/
+templates/
+KULLANIM.md
+CLAUDE.md
+
+# Next.js
+node_modules/
+.next/
+out/
+build/
+
+# Env secrets
+.env
+.env.local
+.env.example
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Testing & Logs
+coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# OS / Editor files
+.DS_Store
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
