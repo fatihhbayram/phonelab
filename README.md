@@ -1,6 +1,6 @@
 # PhoneLab — Profesyonel Telefon Teknik Servis Platformu
 
-PhoneLab, Apple cihazları için optimize edilmiş, modern ve dinamik bir telefon tamir dükkanı web sitesidir. Kullanıcılara premium bir servis deneyimi sunmak amacıyla iFixit ve Apple Support tarzından ilham alan temiz ve güven veren bir tasarıma sahiptir.
+PhoneLab, Apple cihazları için optimize edilmiş, modern ve dinamik bir telefon tamir dükkanı web sitesidir. Kullanıcılara premium bir servis deneyimi sunmak amacıyla temiz ve güven veren bir tasarıma sahiptir.
 
 ## 🌟 Temel Özellikler
 
@@ -8,7 +8,7 @@ PhoneLab, Apple cihazları için optimize edilmiş, modern ve dinamik bir telefo
 *   **WhatsApp Entegrasyonlu Teklif Sistemi:** Müşteri tahmin motorunun sonunda, yaptığı seçimlerin (cihaz modeli, seçilen arıza ve tahmini fiyat aralığı) otomatik olarak doldurulduğu pre-filled mesajla tek tıkla doğrudan WhatsApp hattına yönlendirilir.
 *   **Responsive Tasarım:** Mobil, tablet ve masaüstü cihazlar için tamamen optimize edilmiş premium arayüz.
 *   **Gelişmiş Görsel Varlık Yönetimi:** `/public/assets` klasör yapısı altında optimize edilmiş logo ve site görselleri organizasyonu.
-*   **Esnek API Köprüsü:** İleride kolayca veritabanı (MySQL) entegrasyonuna geçebilmek amacıyla, cihazları ve fiyat hesaplama katsayılarını dinamik olarak sağlayan istemci dostu statik API altyapısı (`GET /api/price-rules`).
+*   **Esnek API Köprüsü:** Apple model listesini doğrudan MySQL veritabanından dinamik olarak sunan (`GET /api/devices`) ve fiyat hesaplama katsayılarını/WhatsApp şablonlarını JSON olarak sağlayan (`GET /api/price-rules`) modüler API altyapısı.
 
 ## 🛠️ Teknoloji Yığını
 
@@ -16,7 +16,7 @@ PhoneLab, Apple cihazları için optimize edilmiş, modern ve dinamik bir telefo
 *   **Dil:** TypeScript
 *   **Styling:** Tailwind CSS + shadcn/ui (Slate Theme)
 *   **Containerization:** Docker & Docker Compose
-*   **Veri Yönetimi (Gelecek):** MySQL 8 (Hazır şema ve docker konteyneri mevcuttur, ilerleyen fazlarda devreye alınacaktır).
+*   **Veri Yönetimi:** MySQL 8 (Kısmi Entegrasyon - Cihaz modelleri veritabanından dinamik listelenir, fiyatlama kuralları ve WhatsApp şablonları ise JSON yapılandırmasından okunur).
 
 ## 🚀 Hızlı Başlangıç
 
@@ -27,7 +27,7 @@ Projeyi yerel geliştirme ortamınızda çalıştırmak için aşağıdaki adım
 ```bash
 cp .env.example .env.local
 ```
-*(Gerekirse `.env.local` dosyasını açıp yapılandırma şifrelerinizi girin).*
+*(Gerekirse `.env.local` dosyasını açıp veritabanı şifrelerinizi girin).*
 
 ### 2. Bağımlılıkları Kurun & Next.js Projesini Başlatın
 Docker konteyneri üzerinden Next.js bağımlılıklarını kurup projeyi ayağa kaldırın:
@@ -37,7 +37,7 @@ docker compose up -d --build
 
 ### 3. Tarayıcıda Açın
 Geliştirme sunucusu hazır olduğunda tarayıcınızdan aşağıdaki adrese gidin:
-*   `http://localhost:3000`
+*   `http://localhost:3002`
 
 ---
 
@@ -50,11 +50,19 @@ phonelab/
 │       ├── images/       # Site görselleri ve illüstrasyonlar
 │       └── logo/         # Marka logoları ve ikonlar
 ├── config/
-│   └── whatsapp.json     # WhatsApp telefon ve şablon konfigürasyonu
+│   └── whatsapp.json     # WhatsApp ve fiyat katsayıları konfigürasyonu
+├── lib/
+│   └── db.ts             # MySQL connection pool bağlantı havuzu helper'ı
 ├── app/
 │   ├── api/
-│   │   └── price-rules/  # Fiyat hesaplama kuralları API'si
-│   └── layout.tsx        # Ana Next.js şablonu
-├── docker-compose.yml    # Geliştirme ortamı Docker konfigürasyonu
+│   │   ├── devices/      # MySQL'den model çeken API rotası (GET)
+│   │   └── price-rules/  # Fiyat kurallarını veren API rotası (GET)
+│   ├── layout.tsx        # Ana Next.js şablonu (Navbar + Footer)
+│   └── page.tsx          # Ana sayfa (Sihirbaz sihirli arayüzü)
+├── database/
+│   └── init.sql          # 54 Apple modelini içeren MySQL şema & tohum dosyası
+├── docker-compose.yml    # Geliştirme ortamı Docker konfigürasyonu (Port 3002)
+├── next.config.js        # Next.js 14 konfigürasyon dosyası
 └── README.md             # Proje genel dokümantasyonu
 ```
+

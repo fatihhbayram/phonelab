@@ -44,27 +44,70 @@ CREATE TABLE IF NOT EXISTS admins (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) CHARACTER SET utf8mb4;
 
--- Örnek cihaz verileri
+-- Örnek cihaz verileri (Kapsamlı ve Güncel Apple Ürün Listesi)
 INSERT INTO devices (brand, model) VALUES
+  -- iPhone 17 Serisi
+  ('Apple', 'iPhone 17 Pro Max'),
+  ('Apple', 'iPhone 17 Pro'),
+  ('Apple', 'iPhone 17 Air'),
+  ('Apple', 'iPhone 17'),
+  ('Apple', 'iPhone 17e'),
+  -- iPhone 16 Serisi
+  ('Apple', 'iPhone 16 Pro Max'),
+  ('Apple', 'iPhone 16 Pro'),
+  ('Apple', 'iPhone 16 Plus'),
+  ('Apple', 'iPhone 16'),
+  ('Apple', 'iPhone 16e'),
+  -- iPhone 15 Serisi
   ('Apple', 'iPhone 15 Pro Max'),
   ('Apple', 'iPhone 15 Pro'),
+  ('Apple', 'iPhone 15 Plus'),
   ('Apple', 'iPhone 15'),
+  -- iPhone 14 Serisi
   ('Apple', 'iPhone 14 Pro Max'),
   ('Apple', 'iPhone 14 Pro'),
+  ('Apple', 'iPhone 14 Plus'),
   ('Apple', 'iPhone 14'),
+  -- iPhone 13 Serisi
+  ('Apple', 'iPhone 13 Pro Max'),
+  ('Apple', 'iPhone 13 Pro'),
   ('Apple', 'iPhone 13'),
+  ('Apple', 'iPhone 13 mini'),
+  -- iPhone 12 Serisi
+  ('Apple', 'iPhone 12 Pro Max'),
+  ('Apple', 'iPhone 12 Pro'),
   ('Apple', 'iPhone 12'),
-  ('Samsung', 'Galaxy S24 Ultra'),
-  ('Samsung', 'Galaxy S24'),
-  ('Samsung', 'Galaxy S23'),
-  ('Samsung', 'Galaxy A54'),
-  ('Xiaomi', 'Xiaomi 14'),
-  ('Xiaomi', 'Redmi Note 13');
+  ('Apple', 'iPhone 12 mini'),
+  -- iPhone 11 Serisi
+  ('Apple', 'iPhone 11 Pro Max'),
+  ('Apple', 'iPhone 11 Pro'),
+  ('Apple', 'iPhone 11'),
+  -- iPhone SE & Diğer Popüler Modeller
+  ('Apple', 'iPhone SE (3. Nesil)'),
+  ('Apple', 'iPhone SE (2. Nesil)'),
+  ('Apple', 'iPhone XS Max'),
+  ('Apple', 'iPhone XS'),
+  ('Apple', 'iPhone XR'),
+  ('Apple', 'iPhone X'),
+  -- iPads
+  ('Apple', 'iPad Pro 13\" (M4)'),
+  ('Apple', 'iPad Pro 11\" (M4)'),
+  ('Apple', 'iPad Pro 12.9\" (6. Nesil)'),
+  ('Apple', 'iPad Pro 11\" (4. Nesil)'),
+  ('Apple', 'iPad Air (M3)'),
+  ('Apple', 'iPad Air (5. Nesil)'),
+  ('Apple', 'iPad (10. Nesil)'),
+  ('Apple', 'iPad (9. Nesil)'),
+  ('Apple', 'iPad mini (6. Nesil)'),
+  -- Apple Watches
+  ('Apple', 'Apple Watch Ultra 3'),
+  ('Apple', 'Apple Watch Ultra 2'),
+  ('Apple', 'Apple Watch Ultra'),
+  ('Apple', 'Apple Watch Series 11'),
+  ('Apple', 'Apple Watch Series 10'),
+  ('Apple', 'Apple Watch Series 9'),
+  ('Apple', 'Apple Watch Series 8'),
+  ('Apple', 'Apple Watch Series 7'),
+  ('Apple', 'Apple Watch SE (3. Nesil)'),
+  ('Apple', 'Apple Watch SE (2. Nesil)');
 
--- Örnek fiyat verileri (iPhone 15 için)
-INSERT INTO prices (device_id, issue_type, condition_type, min_price, max_price, estimated_days) VALUES
-  (3, 'screen_broken', 'working', 1200.00, 1500.00, 1),
-  (3, 'screen_broken', 'partial', 1200.00, 1800.00, 2),
-  (3, 'battery', 'working', 600.00, 800.00, 1),
-  (3, 'charging_port', 'working', 400.00, 600.00, 1),
-  (3, 'camera', 'working', 800.00, 1200.00, 3);
