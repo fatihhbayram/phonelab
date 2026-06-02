@@ -15,7 +15,10 @@
     "bcryptjs": "^3.0.3",
     "jose": "^6.2.3",
     "mysql2": "^3.22.4",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "@react-three/fiber": "^8.17.10",
+    "@react-three/drei": "^9.115.0",
+    "three": "^0.169.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -27,6 +30,7 @@
     "postcss": "^8",
     "autoprefixer": "^10.0.1",
     "eslint": "^8",
-    "eslint-config-next": "14.2.29"
+    "eslint-config-next": "14.2.29",
+    "@types/three": "^0.169.0"
   }
 }
