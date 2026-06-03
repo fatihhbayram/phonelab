@@ -194,7 +194,7 @@ export default function Home() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 32, alignItems: 'stretch' }} className="contact-grid">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <ContactRow icon="mapPin" title="Adres" lines={['Cevizli Mah. Zuhal Cad. Ritim İstanbul', 'A1 Blok No:46 A, İç Kapı No: 366', 'Maltepe / İstanbul']} />
-            <ContactRow icon="phone" title="Telefon" lines={['Telefon numarası eklenecek']} muted />
+            <ContactRow icon="phone" title="Telefon" lines={['+90 534 591 36 71']} />
             <a href={WA_LINK} target="_blank" rel="noreferrer" className="card" style={{ display: 'flex', gap: 14, alignItems: 'center', textDecoration: 'none', padding: '20px 22px' }}>
               <span style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(37,211,102,0.14)', color: 'var(--whatsapp)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name="whatsapp" size={22} /></span>
               <span>
@@ -269,19 +269,28 @@ function MapCard() {
 
 function Footer() {
   const cols = [
-    { h: 'Cihazlar', links: ['iPhone', 'iPad', 'Apple Watch', 'Mac'] },
-    { h: 'Servis', links: ['Fiyat tahmini', 'Nasıl çalışır', 'Garanti', 'Kargo ile onarım'] },
-    { h: 'Kurumsal', links: ['Hakkımızda', 'İletişim', 'Yorumlar'] },
+    { h: 'Cihazlar', links: [
+      { t: 'iPhone', href: '#devices' }, { t: 'iPad', href: '#devices' },
+      { t: 'Apple Watch', href: '#devices' }, { t: 'Mac', href: '#devices' },
+    ] },
+    { h: 'Servis', links: [
+      { t: 'Fiyat tahmini', href: '#estimator' }, { t: 'Nasıl çalışır', href: '#how' },
+      { t: 'Garanti', href: '#about' }, { t: 'Kargo ile onarım', href: '#contact' },
+    ] },
+    { h: 'Kurumsal', links: [
+      { t: 'Hakkımızda', href: '#about' }, { t: 'İletişim', href: '#contact' },
+    ] },
   ];
   return (
     <footer style={{ borderTop: '1px solid var(--line-1)', background: 'var(--bg-1)', paddingTop: 64, paddingBottom: 40 }}>
       <div className="container">
         <div style={{ display: 'grid', gridTemplateColumns: '1.4fr repeat(3, 1fr)', gap: 40, marginBottom: 48 }} className="footer-grid">
           <div>
-            <Image src="/assets/logo/phonelab_logo_dahk.png" alt="PhoneLab" width={144} height={96} style={{ height: 48, width: 'auto' }} />
+            <Image className="footer-logo" src="/assets/logo/phonelab_logo_dahk.png" alt="PhoneLab" width={144} height={96} style={{ height: 48, width: 'auto' }} />
             <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--fg-3)', marginTop: 16, maxWidth: 280 }}>Apple cihazları için bağımsız, uzman onarım servisi. Maltepe, İstanbul.</p>
             <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-              <FooterSocial icon="instagram" />
+              <FooterSocial icon="instagram" href="https://www.instagram.com/phonelab_tr" />
+              <FooterSocial icon="youtube" href="https://www.youtube.com/@phonelabtr" />
               <FooterSocial icon="google" />
               <FooterSocial icon="whatsapp" href={WA_LINK} />
             </div>
@@ -290,7 +299,7 @@ function Footer() {
             <div key={c.h}>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-1)', marginBottom: 14, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{c.h}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {c.links.map((l) => <a key={l} href="#" style={{ fontSize: 14, color: 'var(--fg-3)' }} className="nav-link">{l}</a>)}
+                {c.links.map((l) => <a key={l.t} href={l.href} style={{ fontSize: 14, color: 'var(--fg-3)' }} className="nav-link">{l.t}</a>)}
               </div>
             </div>
           ))}
@@ -316,7 +325,7 @@ function Footer() {
 
 function FooterSocial({ icon, href = '#' }: { icon: IconName; href?: string }) {
   return (
-    <a href={href} target={href !== '#' ? '_blank' : undefined} rel="noreferrer" style={{ width: 38, height: 38, borderRadius: '50%', border: '1px solid var(--line-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--fg-2)' }} className="theme-toggle">
+    <a href={href} target={href !== '#' ? '_blank' : undefined} rel="noreferrer" className={`social-chip social-chip--${icon}`} aria-label={icon}>
       <Icon name={icon} size={17} />
     </a>
   );

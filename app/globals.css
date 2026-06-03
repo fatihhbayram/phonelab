@@ -399,7 +399,14 @@ html { scroll-behavior: smooth; }
   display: flex;
   align-items: flex-end;       /* metin alt */
   overflow: hidden;
+  /* cinematic tonal gradient — palette-matched, düşük chroma (3D arkası derinlik) */
+  background:
+    radial-gradient(110% 90% at 72% 22%, var(--navy-deep) 0%, transparent 55%),
+    var(--bg-1);
 }
+/* koyu temada saydam logonun lacivert "PHONE"unu hafif yukarı çek (mild, geri alınabilir) */
+:root[data-theme="dark"] .brand-logo,
+:root[data-theme="dark"] .footer-logo { filter: brightness(1.18) saturate(1.06); }
 .hero-canvas-3d { position: absolute; inset: 0; z-index: 0; }
 /* masaüstünde modeli sağa kaydır → sol-alt metne temiz alan */
 @media (min-width: 901px) {
@@ -457,8 +464,32 @@ html { scroll-behavior: smooth; }
 .dossier-k { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-3); }
 .dossier-v { font-size: 15px; color: var(--fg-1); text-align: right; }
 
+/* ---------- SOSYAL CHIP: sade → hover'da marka rengi ---------- */
+.social-chip {
+  width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line-2);
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--fg-2); transition: all var(--dur-fast) var(--ease-out);
+}
+.social-chip:hover { color: #fff; border-color: transparent; transform: translateY(-2px); }
+.social-chip--instagram:hover { background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fd5949 45%, #d6249f 60%, #285AEB 90%); }
+.social-chip--youtube:hover  { background: #FF0000; }
+.social-chip--whatsapp:hover { background: var(--whatsapp); }
+.social-chip--google:hover   { background: #4285F4; }
+.social-chip--github:hover   { background: #24292F; border-color: var(--line-2); }
+.social-chip--linkedin:hover { background: #0A66C2; }
+
 /* ---------- MINI STATEMENT (nefes / kapanış) ---------- */
-.statement { padding: 120px 0; text-align: center; }
+.statement {
+  padding: 120px 0; text-align: center; position: relative; overflow: hidden;
+  /* tonal radial + micro-noise (premium tactile depth) */
+  background: radial-gradient(60% 130% at 50% 50%, var(--brand-soft) 0%, transparent 72%);
+}
+.statement::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.04; mix-blend-mode: overlay;
+}
+.statement > * { position: relative; z-index: 1; }
 .statement-text {
   font-size: clamp(28px, 4vw, 46px); font-weight: 500; letter-spacing: -0.02em;
   line-height: 1.2; color: var(--fg-1); max-width: 840px; margin: 0 auto; text-wrap: balance;

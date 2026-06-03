@@ -1,6 +1,6 @@
 {
   "whatsapp": {
-    "number": "905XXXXXXXXX",
+    "number": "905345913671",
     "message_template": "Merhaba PhoneLab! {model} cihazım için {issue} tamir talebi oluşturmak istiyorum. Tahmini fiyat: {price_range} TL"
   },
   "issue_types": {
