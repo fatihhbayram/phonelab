@@ -1,25 +1,17 @@
+// GET /api/price-rules — Apple fiyat kuralları + site ayarları (public).
+// Taze okunur (lib/config) ki admin paneli güncellemesi anında yansısın.
 import { NextResponse } from 'next/server';
-import { readFileSync } from 'fs';
-import { join } from 'path';
-
-let cachedConfig: Record<string, unknown> | null = null;
-
-function loadConfig() {
-  if (!cachedConfig) {
-    const filePath = join(process.cwd(), 'config', 'whatsapp.json');
-    cachedConfig = JSON.parse(readFileSync(filePath, 'utf-8'));
-  }
-  return cachedConfig;
-}
+import { readConfig } from '@/lib/config';
 
 export async function GET() {
   try {
-    const config = loadConfig();
+    const config = readConfig();
     return NextResponse.json({
       data: {
         issue_types: config.issue_types,
         price_rules: config.price_rules,
         whatsapp: config.whatsapp,
+        settings: config.settings,
       },
     });
   } catch {

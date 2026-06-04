@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Icon from './Icon';
 import { WA_LINK } from '@/lib/site';
 
-export default function Nav({ theme, onThemeToggle }: { theme: string; onThemeToggle: () => void }) {
+export default function Nav({ theme, onThemeToggle, waLink = WA_LINK }: { theme: string; onThemeToggle: () => void; waLink?: string }) {
   return (
     <header className="nav">
       <div className="container nav-inner">
@@ -31,7 +31,7 @@ export default function Nav({ theme, onThemeToggle }: { theme: string; onThemeTo
           <button className="theme-toggle" onClick={onThemeToggle} aria-label="Tema">
             <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={16} />
           </button>
-          <a href={WA_LINK} target="_blank" rel="noreferrer" className="btn btn-wa btn-sm">
+          <a href={waLink} target="_blank" rel="noreferrer" className="btn btn-wa btn-sm">
             <Icon name="whatsapp" size={16} /> WhatsApp
           </a>
         </div>

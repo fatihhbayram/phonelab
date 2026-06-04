@@ -12,9 +12,24 @@ import Image from 'next/image';
 import Icon, { IconName } from '@/components/Icon';
 import Nav from '@/components/Nav';
 import Estimator from '@/components/Estimator';
-import { WA_LINK } from '@/lib/site';
+import { WA_NUMBER } from '@/lib/site';
 
 const ThreeBackground = dynamic(() => import('@/components/ThreeBackground'), { ssr: false });
+
+// Admin panelinden (GET /api/price-rules.settings) gelen dinamik içerik.
+interface SiteSettings {
+  about: { title: string; body: string };
+  contact: { phone: string; whatsapp: string; address: string; email: string };
+  social: { instagram: string; google_maps: string };
+}
+
+// Ayar alanı boşsa mevcut statik metne düş — boş ayar sayfayı bozmasın.
+const pick = (v: string | undefined, fallback: string) => (v && v.trim() ? v.trim() : fallback);
+
+function waLinkFrom(number: string) {
+  const n = (number || '').replace(/\D/g, '') || WA_NUMBER;
+  return `https://wa.me/${n}?text=` + encodeURIComponent('Merhaba PhoneLab, cihazım için bilgi almak istiyorum.');
+}
 
 const DEVICES = [
   { icon: 'smartphone' as IconName, name: 'iPhone', repairs: ['Ekran', 'Pil', 'Arka cam', 'Kamera', 'Şarj girişi'], from: '800 ₺’den başlar' },
@@ -44,8 +59,14 @@ const DOSSIER = [
 
 export default function Home() {
   const [theme, setTheme] = useState('dark');
+  const [settings, setSettings] = useState<SiteSettings | null>(null);
+  // 3D sahne yalnızca mount'tan sonra (client) render edilir; statik prerender
+  // ağacına hiç girmez. Next 14.2'de ssr:false dinamik import'un build sırasında
+  // "useContext null" hatası vermesini bu kesin olarak önler.
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const saved = localStorage.getItem('phonelab-theme') || 'dark';
     setTheme(saved);
   }, []);
@@ -55,15 +76,44 @@ export default function Home() {
     localStorage.setItem('phonelab-theme', theme);
   }, [theme]);
 
+  // Admin panelinden yönetilen içerik (Hakkımızda / İletişim / bağlantılar).
+  useEffect(() => {
+    let active = true;
+    fetch('/api/price-rules')
+      .then((r) => r.json())
+      .then((j) => { if (active && j?.data?.settings) setSettings(j.data.settings as SiteSettings); })
+      .catch(() => { /* ayar gelmezse statik fallback'ler kullanılır */ });
+    return () => { active = false; };
+  }, []);
+
   const toggleTheme = () => setTheme((t) => (t === 'light' ? 'dark' : 'light'));
+
+  // Dinamik değerler — boşsa mevcut statik metne düşer.
+  const aboutTitle = pick(settings?.about?.title, 'Laboratuvar disiplini, şeffaf servis');
+  const aboutBody = pick(
+    settings?.about?.body,
+    'PhoneLab, Apple cihazları için kurulmuş bağımsız bir onarım atölyesidir. Maltepe’deki temiz çalışma ortamımızda her onarım mikroskop altında, kontrollü adımlarla yapılır.\n\nPazarlık yok, sürpriz ücret yok. Cihazınız teşhisten geçer, parça önerisi onayınıza sunulur, işlem ardından garanti ile teslim edilir.',
+  );
+  const aboutParas = aboutBody.split(/\n{2,}|\n/).map((s) => s.trim()).filter(Boolean);
+
+  const phone = pick(settings?.contact?.phone, '+90 534 591 36 71');
+  const addressLines = pick(
+    settings?.contact?.address,
+    'Cevizli Mah. Zuhal Cad. Ritim İstanbul\nA1 Blok No:46 A, İç Kapı No: 366\nMaltepe / İstanbul',
+  ).split('\n').map((s) => s.trim()).filter(Boolean);
+  const email = settings?.contact?.email?.trim() || '';
+
+  const waLink = waLinkFrom(settings?.contact?.whatsapp || WA_NUMBER);
+  const instagram = pick(settings?.social?.instagram, 'https://www.instagram.com/phonelab_tr');
+  const googleMaps = pick(settings?.social?.google_maps, 'https://maps.google.com/?q=Ritim+İstanbul+Maltepe');
 
   return (
     <div id="top" style={{ background: 'var(--bg-1)', color: 'var(--fg-1)', minHeight: '100vh' }}>
-      <Nav theme={theme} onThemeToggle={toggleTheme} />
+      <Nav theme={theme} onThemeToggle={toggleTheme} waLink={waLink} />
 
       {/* HERO — image-as-canvas, metin sol-alt */}
       <section className="hero-canvas">
-        <div className="hero-canvas-3d"><ThreeBackground /></div>
+        <div className="hero-canvas-3d">{mounted ? <ThreeBackground /> : null}</div>
         <div className="hero-3d-glow" />
         <div className="hero-scrim" />
         <div className="hero-content container">
@@ -75,7 +125,7 @@ export default function Home() {
           <p className="hero-lead">iPhone, iPad, Apple Watch ve Mac için uzman onarım. Orijinal parça, şeffaf fiyat, aynı gün teslim.</p>
           <div className="hero-cta-row">
             <a href="#estimator" className="btn btn-primary">Fiyat tahmini al <Icon name="arrowRight" size={16} /></a>
-            <a href={WA_LINK} target="_blank" rel="noreferrer" className="btn btn-wa">
+            <a href={waLink} target="_blank" rel="noreferrer" className="btn btn-wa">
               <Icon name="whatsapp" size={18} /> WhatsApp ile İletişim
             </a>
           </div>
@@ -166,12 +216,13 @@ export default function Home() {
       <Section id="about">
         <SectionHead
           index="04" eyebrow="Hakkımızda" align="offset"
-          title="Laboratuvar disiplini, şeffaf servis"
+          title={aboutTitle}
         />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 64, alignItems: 'center' }} className="about-grid">
           <div>
-            <p style={{ fontSize: 17, lineHeight: 1.65, color: 'var(--fg-2)', marginBottom: 18 }}>PhoneLab, Apple cihazları için kurulmuş bağımsız bir onarım atölyesidir. Maltepe’deki temiz çalışma ortamımızda her onarım mikroskop altında, kontrollü adımlarla yapılır.</p>
-            <p style={{ fontSize: 17, lineHeight: 1.65, color: 'var(--fg-2)' }}>Pazarlık yok, sürpriz ücret yok. Cihazınız teşhisten geçer, parça önerisi onayınıza sunulur, işlem ardından garanti ile teslim edilir.</p>
+            {aboutParas.map((p, i) => (
+              <p key={i} style={{ fontSize: 17, lineHeight: 1.65, color: 'var(--fg-2)', marginBottom: i < aboutParas.length - 1 ? 18 : 0 }}>{p}</p>
+            ))}
           </div>
           <div className="dossier">
             {DOSSIER.map((d) => (
@@ -193,9 +244,10 @@ export default function Home() {
         />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 32, alignItems: 'stretch' }} className="contact-grid">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <ContactRow icon="mapPin" title="Adres" lines={['Cevizli Mah. Zuhal Cad. Ritim İstanbul', 'A1 Blok No:46 A, İç Kapı No: 366', 'Maltepe / İstanbul']} />
-            <ContactRow icon="phone" title="Telefon" lines={['+90 534 591 36 71']} />
-            <a href={WA_LINK} target="_blank" rel="noreferrer" className="card" style={{ display: 'flex', gap: 14, alignItems: 'center', textDecoration: 'none', padding: '20px 22px' }}>
+            <ContactRow icon="mapPin" title="Adres" lines={addressLines} />
+            <ContactRow icon="phone" title="Telefon" lines={[phone]} />
+            {email ? <ContactRow icon="mail" title="E-posta" lines={[email]} /> : null}
+            <a href={waLink} target="_blank" rel="noreferrer" className="card" style={{ display: 'flex', gap: 14, alignItems: 'center', textDecoration: 'none', padding: '20px 22px' }}>
               <span style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(37,211,102,0.14)', color: 'var(--whatsapp)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name="whatsapp" size={22} /></span>
               <span>
                 <span style={{ display: 'block', fontSize: 15, fontWeight: 600, color: 'var(--fg-1)' }}>WhatsApp</span>
@@ -205,7 +257,7 @@ export default function Home() {
             </a>
             <ContactRow icon="clock" title="Çalışma saatleri" lines={['Pazartesi – Cumartesi', '09:00 – 19:00']} />
           </div>
-          <MapCard />
+          <MapCard mapsUrl={googleMaps} />
         </div>
       </Section>
 
@@ -215,7 +267,7 @@ export default function Home() {
         <p className="statement-sub">Cihazınız teşhisten geçer, onayınızla onarılır, garantiyle teslim edilir.</p>
       </section>
 
-      <Footer />
+      <Footer instagram={instagram} googleMaps={googleMaps} waLink={waLink} />
     </div>
   );
 }
@@ -243,7 +295,7 @@ function ContactRow({ icon, title, lines, muted }: { icon: IconName; title: stri
   );
 }
 
-function MapCard() {
+function MapCard({ mapsUrl }: { mapsUrl: string }) {
   return (
     <div className="card" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 320 }}>
       <div style={{ position: 'relative', flex: 1, background: 'var(--bg-3)', minHeight: 240 }}>
@@ -260,14 +312,14 @@ function MapCard() {
           <Icon name="mapPin" size={40} />
         </div>
       </div>
-      <a href="https://maps.google.com/?q=Ritim+İstanbul+Maltepe" target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ margin: 16, justifyContent: 'center' }}>
+      <a href={mapsUrl} target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ margin: 16, justifyContent: 'center' }}>
         <Icon name="mapPin" size={16} /> Google Haritalar’da aç
       </a>
     </div>
   );
 }
 
-function Footer() {
+function Footer({ instagram, googleMaps, waLink }: { instagram: string; googleMaps: string; waLink: string }) {
   const cols = [
     { h: 'Cihazlar', links: [
       { t: 'iPhone', href: '#devices' }, { t: 'iPad', href: '#devices' },
@@ -289,10 +341,10 @@ function Footer() {
             <Image className="footer-logo" src="/assets/logo/phonelab_logo_dahk.png" alt="PhoneLab" width={144} height={96} style={{ height: 48, width: 'auto' }} />
             <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--fg-3)', marginTop: 16, maxWidth: 280 }}>Apple cihazları için bağımsız, uzman onarım servisi. Maltepe, İstanbul.</p>
             <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-              <FooterSocial icon="instagram" href="https://www.instagram.com/phonelab_tr" />
+              <FooterSocial icon="instagram" href={instagram} />
               <FooterSocial icon="youtube" href="https://www.youtube.com/@phonelabtr" />
-              <FooterSocial icon="google" />
-              <FooterSocial icon="whatsapp" href={WA_LINK} />
+              <FooterSocial icon="google" href={googleMaps} />
+              <FooterSocial icon="whatsapp" href={waLink} />
             </div>
           </div>
           {cols.map((c) => (
