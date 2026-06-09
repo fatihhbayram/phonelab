@@ -44,6 +44,27 @@ CREATE TABLE IF NOT EXISTS admins (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) CHARACTER SET utf8mb4;
 
+-- Cihaz Alım (Buyback) talepleri (Sprint 5)
+CREATE TABLE IF NOT EXISTS buyback_requests (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  customer_name VARCHAR(100) NOT NULL,
+  customer_phone VARCHAR(20) NOT NULL,
+  kvkk_consent TINYINT(1) NOT NULL DEFAULT 0,
+  price_group VARCHAR(100) NOT NULL,
+  model VARCHAR(100) NOT NULL,
+  storage VARCHAR(20) NOT NULL,
+  screen_status VARCHAR(30) NOT NULL,
+  battery_status VARCHAR(30) NOT NULL,
+  cosmetic_status VARCHAR(30) NOT NULL,
+  has_box_invoice TINYINT(1) NOT NULL DEFAULT 0,
+  offered_price_min DECIMAL(10,2) NOT NULL,
+  offered_price_max DECIMAL(10,2) NOT NULL,
+  status ENUM('pending','contacted','completed','rejected') NOT NULL DEFAULT 'pending',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_status (status),
+  INDEX idx_created (created_at)
+) CHARACTER SET utf8mb4;
+
 -- Örnek cihaz verileri (Kapsamlı ve Güncel Apple Ürün Listesi)
 INSERT INTO devices (brand, model) VALUES
   -- iPhone 17 Serisi

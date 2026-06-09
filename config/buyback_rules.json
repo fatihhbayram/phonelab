@@ -1,0 +1,158 @@
+{
+  "currency": "TL",
+  "spread": 0.06,
+  "round_to": 50,
+  "whatsapp_template": "Merhaba PhoneLab! {model} ({storage}) cihazımı satmak istiyorum.\nVerdiğiniz teklif: {offer_range} TL\nDurum → Ekran: {screen} | Batarya: {battery} | Kozmetik: {cosmetic} | Kutu/Fatura: {box}\nAd: {name} | Tel: {phone}",
+  "options": {
+    "storage": [
+      {
+        "key": "na",
+        "label": "Belirtilmemiş",
+        "factor": 1
+      },
+      {
+        "key": "64gb",
+        "label": "64 GB",
+        "factor": 0.92
+      },
+      {
+        "key": "128gb",
+        "label": "128 GB",
+        "factor": 1
+      },
+      {
+        "key": "256gb",
+        "label": "256 GB",
+        "factor": 1.08
+      },
+      {
+        "key": "512gb",
+        "label": "512 GB",
+        "factor": 1.18
+      },
+      {
+        "key": "1tb",
+        "label": "1 TB",
+        "factor": 1.28
+      }
+    ],
+    "screen": [
+      {
+        "key": "flawless",
+        "label": "Kusursuz (çiziksiz)",
+        "factor": 1
+      },
+      {
+        "key": "micro",
+        "label": "Hafif çizik (ışıkta görünür)",
+        "factor": 0.95
+      },
+      {
+        "key": "scratched",
+        "label": "Belirgin çizik",
+        "factor": 0.85
+      },
+      {
+        "key": "cracked",
+        "label": "Çatlak / kırık",
+        "factor": 0.55
+      }
+    ],
+    "battery": [
+      {
+        "key": "good",
+        "label": "İyi (%90 ve üzeri / değişmiş)",
+        "factor": 1
+      },
+      {
+        "key": "medium",
+        "label": "Orta (%80-89)",
+        "factor": 0.93
+      },
+      {
+        "key": "weak",
+        "label": "Zayıf (%80 altı)",
+        "factor": 0.85
+      }
+    ],
+    "cosmetic": [
+      {
+        "key": "flawless",
+        "label": "Kusursuz",
+        "factor": 1
+      },
+      {
+        "key": "light",
+        "label": "Hafif kullanım izi",
+        "factor": 0.95
+      },
+      {
+        "key": "visible",
+        "label": "Belirgin çizik/ezik",
+        "factor": 0.85
+      },
+      {
+        "key": "heavy",
+        "label": "Ağır hasar / darbe",
+        "factor": 0.7
+      }
+    ],
+    "box_invoice": [
+      {
+        "key": "yes",
+        "label": "Kutu + fatura var",
+        "factor": 1.03
+      },
+      {
+        "key": "no",
+        "label": "Yok",
+        "factor": 1
+      }
+    ]
+  },
+  "base_prices": {
+    "iphone_17_pro_max": 62000,
+    "iphone_17_pro": 54000,
+    "iphone_17_air": 46000,
+    "iphone_17": 42000,
+    "iphone_17e": 32000,
+    "iphone_16_pro_max": 52000,
+    "iphone_16_pro": 45000,
+    "iphone_16_plus": 38000,
+    "iphone_16": 35000,
+    "iphone_16e": 27000,
+    "iphone_15_pro_max": 44000,
+    "iphone_15_pro": 38000,
+    "iphone_15_plus": 33000,
+    "iphone_15": 30000,
+    "iphone_14_pro_max": 36000,
+    "iphone_14_pro": 31000,
+    "iphone_14_plus": 27000,
+    "iphone_14": 24000,
+    "iphone_13_pro_max": 29000,
+    "iphone_13_pro": 25000,
+    "iphone_13": 20000,
+    "iphone_13_mini": 17000,
+    "iphone_12_pro_max": 22000,
+    "iphone_12_pro": 18000,
+    "iphone_12": 15000,
+    "iphone_12_mini": 12000,
+    "iphone_11_pro_max": 16000,
+    "iphone_11_pro": 13000,
+    "iphone_11": 11000,
+    "iphone_se_3": 9000,
+    "iphone_se_2": 5000,
+    "iphone_xs_max": 9000,
+    "iphone_xs": 7000,
+    "iphone_xr": 7000,
+    "iphone_x": 6000,
+    "ipad_pro_13_m4": 48000,
+    "ipad_pro_11_m4": 38000,
+    "ipad_air_m3": 24000,
+    "ipad_10": 14000,
+    "apple_watch_ultra": 28000,
+    "apple_watch_series_10_11": 14000,
+    "apple_watch_series_7_8_9": 8000,
+    "apple_watch_se": 6000
+  }
+}

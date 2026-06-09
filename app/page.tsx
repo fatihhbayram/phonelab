@@ -212,6 +212,38 @@ export default function Home() {
         </div>
       </Section>
 
+      {/* CİHAZINI SAT — convert band (buyback sihirbazına giriş) */}
+      <section
+        aria-label="Cihazını sat"
+        style={{
+          position: 'relative', overflow: 'hidden',
+          borderTop: '1px solid var(--line-1)', borderBottom: '1px solid var(--line-1)',
+          background: 'radial-gradient(78% 140% at 50% 0%, var(--brand-soft) 0%, transparent 62%), var(--bg-1)',
+        }}
+      >
+        <div
+          className="container"
+          style={{ padding: '84px 0', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 32 }}
+        >
+          <div style={{ flex: '1 1 440px' }}>
+            <span className="hero-kicker" style={{ marginBottom: 14 }}>
+              <Icon name="packageCheck" size={15} /> Cihazını Sat
+            </span>
+            <h2 className="section-title" style={{ marginBottom: 14 }}>
+              Eski Apple cihazınız <span style={{ color: 'var(--brand)' }}>anında nakite</span> dönüşsün
+            </h2>
+            <p className="section-lead" style={{ marginBottom: 0, maxWidth: 560 }}>
+              Modelinizi ve durumunu birkaç adımda seçin, tahmini alım teklifinizi hemen görün. Beğenirseniz WhatsApp’tan tek dokunuşla tamamlayın.
+            </p>
+          </div>
+          <div style={{ flex: '0 0 auto' }}>
+            <a href="/cihazini-sat" className="btn btn-primary" style={{ fontSize: 16, padding: '14px 28px' }}>
+              Teklif al <Icon name="arrowRight" size={16} />
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* 04 · HAKKIMIZDA — off-grid offset + dossier */}
       <Section id="about">
         <SectionHead

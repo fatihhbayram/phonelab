@@ -1,11 +1,13 @@
 'use client';
 
-// Cihazlar sekmesi — DB cihaz listesi + yeni cihaz ekleme.
-//   Liste:  GET  /api/devices                      → {id, brand, model}
-//   Ekle:   POST /api/admin/devices                → {brand, model, price_group}
-//   Grup seçenekleri: GET /api/price-rules.price_rules anahtarları
-import { useState, useEffect, useCallback, FormEvent } from 'react';
+// Cihazlar sekmesi — DB cihaz listesi + yeni cihaz ekleme + arama + silme.
+//   Liste:  GET    /api/devices            → {id, brand, model}
+//   Ekle:   POST   /api/admin/devices      → {brand, model, price_group}
+//   Sil:    DELETE /api/admin/devices      → {model, price_group}
+//   Grup seçenekleri ve model→grup eşlemesi: GET /api/price-rules.price_rules
+import { useState, useEffect, useCallback, useMemo, FormEvent } from 'react';
 import { adminFetch, ApiError } from '@/lib/adminApi';
+import Icon from '@/components/Icon';
 
 interface Device { id: number; brand: string; model: string }
 interface RuleGroup { models: string[] }
@@ -13,6 +15,8 @@ interface RuleGroup { models: string[] }
 export default function DevicesTab({ onAuthExpired }: { onAuthExpired: (e: unknown) => void }) {
   const [devices, setDevices] = useState<Device[]>([]);
   const [groups, setGroups] = useState<string[]>([]);
+  // model → fiyat grubu eşlemesi (silme isteği price_group ister)
+  const [groupOf, setGroupOf] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
 
@@ -22,6 +26,12 @@ export default function DevicesTab({ onAuthExpired }: { onAuthExpired: (e: unkno
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Arama + silme durumları
+  const [query, setQuery] = useState('');
+  const [confirmModel, setConfirmModel] = useState('');
+  const [deleting, setDeleting] = useState('');
+  const [rowError, setRowError] = useState('');
 
   const loadDevices = useCallback(() => {
     return fetch('/api/devices')
@@ -42,11 +52,25 @@ export default function DevicesTab({ onAuthExpired }: { onAuthExpired: (e: unkno
         const keys = Object.keys(rules).sort();
         setGroups(keys);
         setPriceGroup(keys[0] ?? '');
+        // model → grup haritası: her grubun models[] listesinden türetilir.
+        const map: Record<string, string> = {};
+        for (const key of keys) {
+          for (const m of rules[key].models ?? []) map[m] = key;
+        }
+        setGroupOf(map);
       })
       .catch(() => { if (active) setLoadError('Veriler yüklenemedi.'); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, []);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLocaleLowerCase('tr');
+    if (!q) return devices;
+    return devices.filter(
+      (d) => d.model.toLocaleLowerCase('tr').includes(q) || d.brand.toLocaleLowerCase('tr').includes(q),
+    );
+  }, [devices, query]);
 
   function validate(): string | null {
     const b = brand.trim();
@@ -69,6 +93,8 @@ export default function DevicesTab({ onAuthExpired }: { onAuthExpired: (e: unkno
         method: 'POST',
         body: { brand: brand.trim(), model: model.trim(), price_group: priceGroup },
       });
+      // Yeni model → grup haritasına işle (silme için lazım), listeyi tazele.
+      setGroupOf((prev) => ({ ...prev, [model.trim()]: priceGroup }));
       setSuccess(`${model.trim()} eklendi.`);
       setModel('');
       await loadDevices();
@@ -77,6 +103,30 @@ export default function DevicesTab({ onAuthExpired }: { onAuthExpired: (e: unkno
       else { onAuthExpired(err); setFormError('İşlem yapılamadı.'); }
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function onDelete(d: Device) {
+    setRowError('');
+    const group = groupOf[d.model];
+    if (!group) {
+      setRowError(`"${d.model}" hiçbir fiyat grubuna bağlı değil; panelden silinemiyor.`);
+      setConfirmModel('');
+      return;
+    }
+    setDeleting(d.model);
+    try {
+      await adminFetch('/api/admin/devices', {
+        method: 'DELETE',
+        body: { model: d.model, price_group: group },
+      });
+      setConfirmModel('');
+      await loadDevices();
+    } catch (err) {
+      if (err instanceof ApiError) setRowError(err.message);
+      else { onAuthExpired(err); setRowError('Silinemedi.'); }
+    } finally {
+      setDeleting('');
     }
   }
 
@@ -123,22 +173,66 @@ export default function DevicesTab({ onAuthExpired }: { onAuthExpired: (e: unkno
 
       {/* Liste */}
       <section className="admin-panel">
-        <h2 className="admin-panel-title">Kayıtlı cihazlar <span className="admin-count">{devices.length}</span></h2>
+        <h2 className="admin-panel-title">
+          Kayıtlı cihazlar <span className="admin-count">{devices.length}</span>
+        </h2>
+
+        {!loading && !loadError && devices.length > 0 && (
+          <div className="admin-search-wrap">
+            <Icon name="search" size={16} />
+            <input
+              className="field admin-search"
+              type="search"
+              placeholder="Model veya marka ara…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              aria-label="Cihaz ara"
+            />
+          </div>
+        )}
+
+        {rowError && <div className="admin-alert admin-alert-error" style={{ marginBottom: 12 }}>{rowError}</div>}
+
         {loading ? (
           <div className="admin-empty">Yükleniyor…</div>
         ) : loadError ? (
           <div className="admin-alert admin-alert-error">{loadError}</div>
         ) : devices.length === 0 ? (
           <div className="admin-empty">Henüz cihaz yok.</div>
+        ) : filtered.length === 0 ? (
+          <div className="admin-empty">&quot;{query}&quot; ile eşleşen cihaz yok.</div>
         ) : (
           <div className="admin-table-wrap">
             <table className="admin-table">
               <thead>
-                <tr><th>Marka</th><th>Model</th></tr>
+                <tr><th>Marka</th><th>Model</th><th style={{ width: 96, textAlign: 'right' }}>İşlem</th></tr>
               </thead>
               <tbody>
-                {devices.map((d) => (
-                  <tr key={d.id}><td>{d.brand}</td><td>{d.model}</td></tr>
+                {filtered.map((d) => (
+                  <tr key={d.id}>
+                    <td>{d.brand}</td>
+                    <td>{d.model}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      {confirmModel === d.model ? (
+                        <span className="admin-row-confirm">
+                          <button type="button" className="admin-link-danger" disabled={deleting === d.model}
+                            onClick={() => onDelete(d)}>
+                            {deleting === d.model ? 'Siliniyor…' : 'Sil'}
+                          </button>
+                          <button type="button" className="admin-link-muted" disabled={deleting === d.model}
+                            onClick={() => setConfirmModel('')}>
+                            Vazgeç
+                          </button>
+                        </span>
+                      ) : (
+                        <button type="button" className="admin-icon-btn admin-icon-btn-danger"
+                          aria-label={`${d.model} sil`} title="Sil"
+                          onClick={() => { setRowError(''); setConfirmModel(d.model); }}>
+                          <Icon name="trash" size={16} />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
                 ))}
               </tbody>
             </table>

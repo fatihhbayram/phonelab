@@ -6,7 +6,8 @@ export type IconName =
   | 'instagram' | 'google' | 'menu' | 'sun' | 'moon' | 'whatsapp'
   | 'smartphone' | 'tablet' | 'watch' | 'laptop' | 'screen' | 'battery'
   | 'camera' | 'cpu' | 'wrench' | 'truck' | 'packageCheck' | 'sparkle' | 'zap'
-  | 'github' | 'linkedin' | 'youtube' | 'mail';
+  | 'github' | 'linkedin' | 'youtube' | 'mail'
+  | 'search' | 'trash' | 'download' | 'upload' | 'plus' | 'close';
 
 const paths: Record<IconName, ReactElement> = {
   arrowRight: <path d="M5 12h14M13 5l7 7-7 7" />,
@@ -39,6 +40,12 @@ const paths: Record<IconName, ReactElement> = {
   linkedin: <><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" /><rect x="2" y="9" width="4" height="12" /><circle cx="4" cy="4" r="2" /></>,
   youtube: <><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-2C18.88 4 12 4 12 4s-6.88 0-8.59.46a2.78 2.78 0 0 0-1.95 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.41 19c1.71.46 8.59.46 8.59.46s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z" /><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" fill="currentColor" stroke="none" /></>,
   mail: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 7l9 6 9-6" /></>,
+  search: <><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></>,
+  trash: <><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" /><path d="M10 11v6M14 11v6" /></>,
+  download: <><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><path d="M7 10l5 5 5-5" /><path d="M12 15V3" /></>,
+  upload: <><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><path d="M17 8l-5-5-5 5" /><path d="M12 3v12" /></>,
+  plus: <path d="M12 5v14M5 12h14" />,
+  close: <path d="M18 6L6 18M6 6l12 12" />,
 };
 
 export default function Icon({ name, size = 20, stroke = 1.5 }: { name: IconName; size?: number; stroke?: number }) {

@@ -24,6 +24,7 @@ export default function Nav({ theme, onThemeToggle, waLink = WA_LINK }: { theme:
           <a href="#devices" className="nav-link">Cihazlar</a>
           <a href="#how" className="nav-link">Nasıl Çalışır</a>
           <a href="#estimator" className="nav-link">Fiyat Tahmini</a>
+          <a href="/cihazini-sat" className="nav-link">Cihazını Sat</a>
           <a href="#about" className="nav-link">Hakkımızda</a>
           <a href="#contact" className="nav-link">İletişim</a>
         </nav>

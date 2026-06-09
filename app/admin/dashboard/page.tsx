@@ -10,12 +10,16 @@ import { fetchMe, logout, AuthExpiredError, type AdminIdentity } from '@/lib/adm
 import DevicesTab from '@/components/admin/DevicesTab';
 import PriceRulesTab from '@/components/admin/PriceRulesTab';
 import SettingsTab from '@/components/admin/SettingsTab';
+import BuybacksTab from '@/components/admin/BuybacksTab';
+import BuybackRulesTab from '@/components/admin/BuybackRulesTab';
 
-type Tab = 'devices' | 'prices' | 'settings';
+type Tab = 'devices' | 'prices' | 'buybacks' | 'buyrules' | 'settings';
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'devices', label: 'Cihazlar' },
   { key: 'prices', label: 'Fiyatlar' },
+  { key: 'buybacks', label: 'Cihaz Alım' },
+  { key: 'buyrules', label: 'Alım Fiyatları' },
   { key: 'settings', label: 'Ayarlar' },
 ];
 
@@ -89,6 +93,8 @@ export default function AdminDashboard() {
       <main className="admin-main">
         {tab === 'devices' && <DevicesTab onAuthExpired={handleExpired} />}
         {tab === 'prices' && <PriceRulesTab onAuthExpired={handleExpired} />}
+        {tab === 'buybacks' && <BuybacksTab onAuthExpired={handleExpired} />}
+        {tab === 'buyrules' && <BuybackRulesTab onAuthExpired={handleExpired} />}
         {tab === 'settings' && <SettingsTab onAuthExpired={handleExpired} />}
       </main>
     </div>

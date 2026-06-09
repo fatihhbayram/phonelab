@@ -54,6 +54,23 @@ async function parseError(res: Response): Promise<ApiError> {
 }
 
 /**
+ * Çekirdek korumalı istek: credentials ekler, 401'de BİR KEZ refresh + tekrar dener.
+ * Ham Response döner — gövdeyi (json/blob/text) çağıran yorumlar. CSV indirme/yükleme
+ * gibi JSON olmayan uçlar bunu doğrudan kullanır. Refresh de 401 ise AuthExpiredError.
+ */
+export async function adminRequest(path: string, init: RequestInit = {}): Promise<Response> {
+  const withCreds: RequestInit = { ...init, credentials: 'include' };
+  let res = await fetch(path, withCreds);
+  if (res.status === 401) {
+    const refreshed = await tryRefresh();
+    if (!refreshed) throw new AuthExpiredError();
+    res = await fetch(path, withCreds); // tek tekrar denemesi
+    if (res.status === 401) throw new AuthExpiredError();
+  }
+  return res;
+}
+
+/**
  * Korumalı admin isteği. JSON gövde verirse otomatik serialize + header eklenir.
  * Başarısızsa ApiError; oturum geçtiyse AuthExpiredError fırlatır.
  */
@@ -61,29 +78,42 @@ export async function adminFetch<T = unknown>(
   path: string,
   options: { method?: string; body?: unknown } = {},
 ): Promise<T> {
-  const init: RequestInit = {
-    method: options.method ?? 'GET',
-    credentials: 'include',
-  };
+  const init: RequestInit = { method: options.method ?? 'GET' };
   if (options.body !== undefined) {
     init.headers = { 'Content-Type': 'application/json' };
     init.body = JSON.stringify(options.body);
   }
 
-  let res = await fetch(path, init);
-
-  if (res.status === 401) {
-    const refreshed = await tryRefresh();
-    if (!refreshed) throw new AuthExpiredError();
-    res = await fetch(path, init); // tek tekrar denemesi
-    if (res.status === 401) throw new AuthExpiredError();
-  }
+  const res = await adminRequest(path, init);
 
   if (!res.ok) throw await parseError(res);
 
   if (res.status === 204) return undefined as T;
   const json = await res.json();
   return json.data as T;
+}
+
+/**
+ * Korumalı bir uçtan dosya indirir (ör. CSV export). 401'de refresh akışına uyar,
+ * dosya adını Content-Disposition'dan okur, tarayıcıda indirmeyi tetikler.
+ */
+export async function adminDownload(path: string, fallbackName: string): Promise<void> {
+  const res = await adminRequest(path);
+  if (!res.ok) throw await parseError(res);
+
+  const blob = await res.blob();
+  const cd = res.headers.get('Content-Disposition') ?? '';
+  const match = /filename="?([^";]+)"?/.exec(cd);
+  const name = match?.[1] ?? fallbackName;
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 // Oturum kontrolü — dashboard mount'unda kullanılır.

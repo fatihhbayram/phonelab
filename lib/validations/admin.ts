@@ -26,6 +26,36 @@ export const updatePriceRuleSchema = z.object({
   prices: z.record(z.string(), priceEntrySchema),
 });
 
+// Cihaz silme: DB'den ve config grubundan kaldırılır
+export const deleteDeviceSchema = z.object({
+  model: z.string().trim().min(1).max(100),
+  price_group: z.string().trim().min(1).max(100),
+});
+
+// Config price_rules anahtarı: küçük harf, rakam, alt çizgi (slug)
+const groupKeySchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(100)
+  .regex(/^[a-z0-9_]+$/, 'Yalnızca küçük harf, rakam ve alt çizgi');
+
+// Yeni fiyat grubu oluşturma / mevcut bir gruptan klonlama.
+// clone_from verilirse o grubun fiyatları kopyalanır (models hariç).
+export const createPriceGroupSchema = z.object({
+  group: groupKeySchema,
+  clone_from: z.string().trim().min(1).max(100).optional(),
+});
+
+// Toplu fiyat güncelleme: yüzde veya sabit tutar, artış (+) / azalış (-).
+// groups/issues boş bırakılırsa tüm gruplara / tüm arıza türlerine uygulanır.
+export const bulkPriceSchema = z.object({
+  mode: z.enum(['percent', 'fixed']),
+  value: z.number().finite(), // negatif = azalış
+  groups: z.array(z.string().trim().min(1).max(100)).optional(),
+  issues: z.array(z.string().trim().min(1).max(100)).optional(),
+});
+
 // Site ayarları (about / contact / social)
 export const settingsSchema = z.object({
   about: z.object({
