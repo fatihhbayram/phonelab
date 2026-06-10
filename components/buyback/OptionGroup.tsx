@@ -23,18 +23,20 @@ export default function OptionGroup({
   value: string;
   onChange: (key: string) => void;
 }) {
+  const labelId = `optgrp-${label.replace(/\s+/g, '-').toLowerCase()}`;
   return (
     <div className="bw-field">
-      <span className="bw-field-label">{label}</span>
-      <div className="bw-opts">
+      <span className="bw-field-label" id={labelId}>{label}</span>
+      <div className="bw-opts" role="radiogroup" aria-labelledby={labelId}>
         {options.map((o) => {
           const on = o.key === value;
           return (
             <button
               key={o.key}
               type="button"
+              role="radio"
+              aria-checked={on}
               className={'bw-opt' + (on ? ' is-on' : '')}
-              aria-pressed={on}
               onClick={() => onChange(o.key)}
             >
               <span className="bw-opt-label">{o.label}</span>

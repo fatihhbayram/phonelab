@@ -1,0 +1,8 @@
+# Geçici production yayını için override (CF Tunnel testi).
+# Kullanım:  sudo docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# Geri dönüş (dev): sudo docker compose up -d
+services:
+  nextjs:
+    command: sh -c "npm run build && npm run start"
+    environment:
+      - NODE_ENV=production

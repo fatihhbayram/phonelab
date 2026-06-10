@@ -259,6 +259,43 @@ a:hover { opacity: 0.7; }
 .nav-link { color: var(--fg-1); font-size: 14px; font-weight: 500; }
 .nav-link:hover { opacity: 0.6; }
 .nav-actions { display: flex; gap: 10px; align-items: center; }
+
+/* ---------- mobil hamburger + sheet ---------- */
+.nav-burger {
+  display: none; align-items: center; justify-content: center;
+  width: 44px; height: 44px; border-radius: 10px;
+  background: transparent; border: 1px solid var(--line-2); color: var(--fg-1);
+  cursor: pointer;
+}
+.nav-sheet-backdrop {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(0, 0, 0, 0.55); backdrop-filter: blur(2px);
+  display: flex; justify-content: flex-end;
+  animation: nav-fade var(--dur-fast, 0.16s) var(--ease-out, ease);
+}
+.nav-sheet {
+  width: min(86vw, 360px); height: 100%;
+  background: var(--bg-elev, var(--bg-1)); border-left: 1px solid var(--line-1);
+  box-shadow: var(--shadow-2); padding: 20px;
+  display: flex; flex-direction: column; gap: 8px;
+  animation: nav-slide var(--dur-fast, 0.18s) var(--ease-out, ease);
+}
+.nav-sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.nav-sheet-title {
+  font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-3);
+}
+.nav-sheet-links { display: flex; flex-direction: column; }
+.nav-sheet-link {
+  display: flex; align-items: center; min-height: 48px;
+  padding: 4px 6px; font-size: 16px; font-weight: 500; color: var(--fg-1);
+  border-bottom: 1px solid var(--line-1);
+}
+.nav-sheet-link:active { opacity: 0.6; }
+.nav-sheet-cta { margin-top: auto; padding-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+.nav-sheet-cta .btn { min-height: 48px; justify-content: center; }
+@keyframes nav-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes nav-slide { from { transform: translateX(16px); opacity: 0.4; } to { transform: translateX(0); opacity: 1; } }
 .brand-logo { height: 56px; width: auto; display: block; }
 
 /* ---------- BUTTONS ---------- */
@@ -275,7 +312,22 @@ a:hover { opacity: 0.7; }
 .btn-ghost { background: transparent; color: var(--brand); padding: 10px 16px; font-size: 15px; }
 .btn-wa { background: var(--whatsapp); color: #fff; padding: 12px 24px; border-radius: 9999px; font-size: 15px; font-weight: 600; }
 .btn-wa:hover { background: var(--whatsapp-hover); opacity: 1; }
+/* WhatsApp outline (ikincil) — hero'da tek dolu birincil "Fiyat tahmini al" kalsın diye */
+.btn-wa-outline {
+  background: transparent; color: var(--whatsapp);
+  border: 1.5px solid var(--whatsapp);
+  padding: 10.5px 22px; border-radius: 9999px; font-size: 15px; font-weight: 600;
+}
+.btn-wa-outline:hover { background: rgba(37, 211, 102, 0.10); opacity: 1; }
 .btn-sm { padding: 9px 18px; font-size: 13px; }
+
+/* ---------- ERİŞİLEBİLİRLİK: klavye odağı ---------- */
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+:focus:not(:focus-visible) { outline: none; }
 
 /* ---------- CARDS ---------- */
 .card {
@@ -374,6 +426,7 @@ a:hover { opacity: 0.7; }
   .hero-3d { height: 460px; }
   .section { padding: 72px 0; }
   .nav-links { display: none; }
+  .nav-burger { display: inline-flex; }
   .container { padding: 0 20px; }
   .steps-grid { grid-template-columns: 1fr; }
   .estimator-grid, .about-grid, .contact-grid { grid-template-columns: 1fr !important; gap: 32px !important; }
@@ -381,6 +434,7 @@ a:hover { opacity: 0.7; }
 }
 @media (max-width: 560px) {
   .footer-grid { grid-template-columns: 1fr !important; }
+  .nav-wa { display: none; }   /* dar ekranda WhatsApp CTA sheet içinde */
 }
 
 /* smooth in-page anchor scroll, offset for sticky nav */
@@ -397,7 +451,8 @@ html { scroll-behavior: smooth; }
   position: relative;
   min-height: calc(100vh - 64px);
   display: flex;
-  align-items: flex-end;       /* metin alt */
+  align-items: center;         /* metin dikeyde ortada — uzun ekranlarda (27" 2K) dibe yapışmasın,
+                                  3D modelin merkeziyle hizalansın. Mobilde ↓ flex-end. */
   overflow: hidden;
   /* cinematic tonal gradient — palette-matched, düşük chroma (3D arkası derinlik) */
   background:
@@ -408,6 +463,8 @@ html { scroll-behavior: smooth; }
 :root[data-theme="dark"] .brand-logo,
 :root[data-theme="dark"] .footer-logo { filter: brightness(1.18) saturate(1.06); }
 .hero-canvas-3d { position: absolute; inset: 0; z-index: 0; }
+/* mobil/reduced-motion statik poster (3D yerine) — next/image fill */
+.hero-canvas-3d img { object-fit: cover; }
 /* masaüstünde modeli sağa kaydır → sol-alt metne temiz alan */
 @media (min-width: 901px) {
   .hero-canvas-3d { transform: translateX(16%); }
@@ -421,7 +478,7 @@ html { scroll-behavior: smooth; }
 }
 .hero-content {
   position: relative; z-index: 2; width: 100%;
-  padding-top: 132px; padding-bottom: 76px;
+  padding-top: 104px; padding-bottom: 96px;   /* dikey-ortada dengeli nefes */
 }
 .hero-content .hero-title { margin: 0 0 20px; }
 .hero-content .hero-lead { margin: 0 0 30px; }
@@ -498,6 +555,7 @@ html { scroll-behavior: smooth; }
 .statement-sub { margin-top: 18px; font-size: 15px; color: var(--fg-3); }
 
 @media (max-width: 900px) {
+  .hero-canvas { align-items: flex-end; }   /* mobilde poster üstünde metin altta kalsın */
   .hero-content { padding-top: 96px; padding-bottom: 52px; }
   .shead--offset { max-width: none; margin-left: 0; }
   .statement { padding: 80px 0; }
@@ -507,4 +565,18 @@ html { scroll-behavior: smooth; }
   .metric { border-left: none; border-top: 1px solid var(--line-1); padding: 32px 22px; }
   .metric:nth-child(-n+2) { border-top: none; }
   .metric:nth-child(odd) { border-left: none; }
+}
+
+/* ---------- ERİŞİLEBİLİRLİK: küçük puntolarda (12–13px) kontrast ---------- */
+.meta, .small { color: var(--fg-2); }
+
+/* ---------- prefers-reduced-motion: animasyon/geçişleri sustur ---------- */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

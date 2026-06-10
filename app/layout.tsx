@@ -10,9 +10,25 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  // OG/twitter görsellerinin mutlak URL'e çözülmesi için. Prod alan adını
+  // NEXT_PUBLIC_SITE_URL ile ver (yoksa localhost'a düşer).
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
   title: 'PhoneLab — iPhone & Apple Tamir Servisi İstanbul',
   description:
     'iPhone, iPad, Apple Watch ve Mac için uzman onarım. Orijinal parça, şeffaf fiyat, aynı gün teslim. Maltepe, İstanbul.',
+  openGraph: {
+    type: 'website',
+    locale: 'tr_TR',
+    siteName: 'PhoneLab',
+    title: 'PhoneLab — iPhone & Apple Tamir Servisi İstanbul',
+    description:
+      'iPhone, iPad, Apple Watch ve Mac için uzman onarım. Orijinal parça, şeffaf fiyat, aynı gün teslim. Maltepe, İstanbul.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'PhoneLab — iPhone & Apple Tamir Servisi İstanbul',
+    description: 'Apple cihazları için uzman onarım. Maltepe, İstanbul.',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

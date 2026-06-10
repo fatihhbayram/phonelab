@@ -23,7 +23,7 @@ export interface SiteSettings {
 }
 
 export interface SiteConfig {
-  whatsapp: { number: string; message_template: string };
+  whatsapp: { number: string; message_template: string; buyback_template?: string };
   issue_types: Record<string, { label: string }>;
   price_rules: Record<string, PriceGroup>;
   settings?: SiteSettings;

@@ -15,11 +15,11 @@ import BuybackRulesTab from '@/components/admin/BuybackRulesTab';
 
 type Tab = 'devices' | 'prices' | 'buybacks' | 'buyrules' | 'settings';
 
+// Sprint 6: "Cihaz Alım" (buybacks) ve "Alım Fiyatları" (buyrules) sekmeleri gizlendi
+// (fiyatsız WhatsApp akışına geçildi). Bileşen kodu SİLİNMEDİ — geri açmak için listeye ekle.
 const TABS: { key: Tab; label: string }[] = [
   { key: 'devices', label: 'Cihazlar' },
   { key: 'prices', label: 'Fiyatlar' },
-  { key: 'buybacks', label: 'Cihaz Alım' },
-  { key: 'buyrules', label: 'Alım Fiyatları' },
   { key: 'settings', label: 'Ayarlar' },
 ];
 

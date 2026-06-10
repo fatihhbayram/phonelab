@@ -64,11 +64,22 @@ export default function Home() {
   // ağacına hiç girmez. Next 14.2'de ssr:false dinamik import'un build sırasında
   // "useContext null" hatası vermesini bu kesin olarak önler.
   const [mounted, setMounted] = useState(false);
+  // Mobil (≤900px) veya prefers-reduced-motion: ağır Three.js/GLB yerine statik
+  // poster göster (performans + erişilebilirlik). Poster yoksa glow/scrim graceful fallback.
+  const [staticHero, setStaticHero] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     const saved = localStorage.getItem('phonelab-theme') || 'dark';
     setTheme(saved);
+  }, []);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 900px), (prefers-reduced-motion: reduce)');
+    const update = () => setStaticHero(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
   }, []);
 
   useEffect(() => {
@@ -113,7 +124,9 @@ export default function Home() {
 
       {/* HERO — image-as-canvas, metin sol-alt */}
       <section className="hero-canvas">
-        <div className="hero-canvas-3d">{mounted ? <ThreeBackground /> : null}</div>
+        <div className="hero-canvas-3d">
+          {mounted ? (staticHero ? <HeroPoster /> : <ThreeBackground />) : null}
+        </div>
         <div className="hero-3d-glow" />
         <div className="hero-scrim" />
         <div className="hero-content container">
@@ -125,22 +138,15 @@ export default function Home() {
           <p className="hero-lead">iPhone, iPad, Apple Watch ve Mac için uzman onarım. Orijinal parça, şeffaf fiyat, aynı gün teslim.</p>
           <div className="hero-cta-row">
             <a href="#estimator" className="btn btn-primary">Fiyat tahmini al <Icon name="arrowRight" size={16} /></a>
-            <a href={waLink} target="_blank" rel="noreferrer" className="btn btn-wa">
+            <a href={waLink} target="_blank" rel="noreferrer" className="btn btn-wa-outline">
               <Icon name="whatsapp" size={18} /> WhatsApp ile İletişim
             </a>
           </div>
         </div>
       </section>
 
-      {/* METRİK ŞERİDİ — güven (hero + about stat'ları birleşti) */}
-      <section className="metrics" aria-label="Güven göstergeleri">
-        <div className="container metrics-inner">
-          <Metric k="4.9" unit="★" l="Google · 320+ yorum" />
-          <Metric k="12.000+" l="Tamamlanan onarım" />
-          <Metric k="8" unit=" yıl" l="Sektör tecrübesi" />
-          <Metric k="%98" l="Müşteri memnuniyeti" />
-        </div>
-      </section>
+      {/* METRİK ŞERİDİ — Karar 14: gerçek Google verisi gelene kadar gizlendi.
+          Metric bileşeni ve .metrics CSS'i KORUNUR (ileride geri açılabilir). */}
 
       {/* 01 · CİHAZLAR — left lead */}
       <Section id="devices" alt>
@@ -289,7 +295,7 @@ export default function Home() {
             </a>
             <ContactRow icon="clock" title="Çalışma saatleri" lines={['Pazartesi – Cumartesi', '09:00 – 19:00']} />
           </div>
-          <MapCard mapsUrl={googleMaps} />
+          <MapCard mapsUrl={googleMaps} query={addressLines.join(', ')} />
         </div>
       </Section>
 
@@ -327,22 +333,36 @@ function ContactRow({ icon, title, lines, muted }: { icon: IconName; title: stri
   );
 }
 
-function MapCard({ mapsUrl }: { mapsUrl: string }) {
+// Mobil/erişilebilirlik için hero 3D yerine statik poster. Görsel
+// public/assets/images/hero-poster.webp; yoksa alttaki glow/scrim graceful fallback kalır.
+function HeroPoster() {
+  return (
+    <Image
+      src="/assets/images/hero-poster.webp"
+      alt=""
+      aria-hidden
+      fill
+      priority
+      sizes="100vw"
+      style={{ objectFit: 'cover', objectPosition: 'center' }}
+    />
+  );
+}
+
+// Gerçek Google Maps embed (lazy iframe). Sorgu adresten üretilir → API anahtarı
+// gerekmez. Kart çerçevesi + "Haritalar'da aç" linki korunur.
+function MapCard({ mapsUrl, query }: { mapsUrl: string; query: string }) {
+  const embedSrc = `https://www.google.com/maps?q=${encodeURIComponent(query)}&hl=tr&z=16&output=embed`;
   return (
     <div className="card" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 320 }}>
       <div style={{ position: 'relative', flex: 1, background: 'var(--bg-3)', minHeight: 240 }}>
-        <svg width="100%" height="100%" viewBox="0 0 600 360" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0 }}>
-          <rect width="600" height="360" fill="var(--bg-3)" />
-          {[...Array(7)].map((_, i) => (<line key={'h' + i} x1="0" y1={i * 52 + 20} x2="600" y2={i * 52 + 20} stroke="var(--line-1)" strokeWidth="1.5" />))}
-          {[...Array(11)].map((_, i) => (<line key={'v' + i} x1={i * 56 + 20} y1="0" x2={i * 56 + 20} y2="360" stroke="var(--line-1)" strokeWidth="1.5" />))}
-          <path d="M-20 250 L180 200 L300 240 L460 180 L640 220" fill="none" stroke="var(--brand)" strokeOpacity="0.35" strokeWidth="6" />
-          <path d="M120 -20 L160 120 L140 240 L200 380" fill="none" stroke="var(--line-2)" strokeWidth="8" />
-          <path d="M380 -20 L360 140 L420 260 L400 380" fill="none" stroke="var(--line-2)" strokeWidth="8" />
-          <circle cx="300" cy="180" r="42" fill="var(--brand-soft)" />
-        </svg>
-        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-100%)', color: 'var(--brand)', filter: 'drop-shadow(0 6px 10px rgba(0,0,0,0.4))' }}>
-          <Icon name="mapPin" size={40} />
-        </div>
+        <iframe
+          title="PhoneLab konum haritası"
+          src={embedSrc}
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
+        />
       </div>
       <a href={mapsUrl} target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ margin: 16, justifyContent: 'center' }}>
         <Icon name="mapPin" size={16} /> Google Haritalar’da aç
@@ -391,8 +411,8 @@ function Footer({ instagram, googleMaps, waLink }: { instagram: string; googleMa
         <div style={{ borderTop: '1px solid var(--line-1)', paddingTop: 24, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, fontSize: 13, color: 'var(--fg-3)' }}>
           <div>© 2026 PhoneLab · Maltepe, İstanbul</div>
           <div style={{ display: 'flex', gap: 20 }}>
-            <a href="#" style={{ color: 'var(--fg-3)' }}>Gizlilik</a>
-            <a href="#" style={{ color: 'var(--fg-3)' }}>Kullanım koşulları</a>
+            <a href="/gizlilik" style={{ color: 'var(--fg-3)' }}>Gizlilik</a>
+            <a href="/kullanim-kosullari" style={{ color: 'var(--fg-3)' }}>Kullanım koşulları</a>
           </div>
         </div>
         {/* Geliştirici kredisi */}

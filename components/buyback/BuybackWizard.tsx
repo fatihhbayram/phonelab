@@ -1,12 +1,23 @@
 'use client';
 
-// BuybackWizard — /cihazini-sat çok adımlı cihaz alım sihirbazı.
-//   Meta:     GET  /api/buyback/calculate   → options + uygun model listesi (açılışta 1 kez)
-//   Teklif:   POST /api/buyback/calculate   → her seçim sonrası canlı teklif aralığı (DB'ye yazmaz)
-//   Gönder:   POST /api/buyback/submit      → KVKK onaylı kayıt + whatsapp_url'e yönlendirme
-// Seçenek key'leri ve modeller metadata'dan gelir; frontend'de sabitleme yok.
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+// BuybackWizard — /cihazini-sat çok adımlı cihaz alım sihirbazı (Sprint 6: fiyatsız WhatsApp akışı).
+//   Meta: GET /api/buyback/calculate → { currency, options, models, whatsapp:{number,template} } (açılışta 1 kez)
+// Fiyat sitede HESAPLANMAZ/GÖSTERİLMEZ; kişisel veri (ad/telefon) TOPLANMAZ.
+// Seçimler şablondaki {model}/{storage}/{screen}/{battery}/{cosmetic}/{box} yerlerine
+// options metadata'sındaki key→label eşlemesiyle yazılır ve wa.me linki üretilir.
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import OptionGroup, { type BuybackOption } from './OptionGroup';
+
+// Beklenti satırı (fiyat motivasyonunun yerini dolduran güven mesajı).
+// Not: ileride config/whatsapp.json'dan (response_time) okunabilir — şimdilik sabit kopya.
+const RESPONSE_TIME_NOTE = 'Mesai saatlerinde ortalama ~15 dakika içinde WhatsApp’tan yanıt veriyoruz.';
+
+// Adım 4 "Sırada ne var?" anlatımı — fiyat yerine süreç şeffaflığı.
+const NEXT_STEPS: { t: string; d: string }[] = [
+  { t: 'Mesajınız bize ulaşır', d: 'Seçimleriniz WhatsApp mesajına madde madde eklenir; tek dokunuşla gönderirsiniz.' },
+  { t: 'Cihazınız değerlendirilir', d: 'Model ve durum bilgilerinize göre en uygun alım teklifini hazırlarız.' },
+  { t: 'Teklifiniz WhatsApp’tan gelir', d: 'Net teklifimizi aynı sohbet üzerinden size iletiriz.' },
+];
 
 interface BuybackOptions {
   storage: BuybackOption[];
@@ -16,22 +27,12 @@ interface BuybackOptions {
   box_invoice: BuybackOption[];
 }
 interface ModelRow { model: string; price_group: string }
-interface Meta { currency: string; options: BuybackOptions; models: ModelRow[] }
-
-interface Quote {
-  model: string;
+interface WhatsappMeta { number: string; template: string }
+interface Meta {
   currency: string;
-  offered_price_min: number;
-  offered_price_max: number;
-  labels: Record<string, string>;
-}
-interface SubmitResult {
-  id: number;
-  model: string;
-  offered_price_min: number;
-  offered_price_max: number;
-  currency: string;
-  whatsapp_url: string;
+  options: BuybackOptions;
+  models: ModelRow[];
+  whatsapp: WhatsappMeta;
 }
 
 interface Selection {
@@ -47,7 +48,7 @@ const STEPS = [
   { title: 'Cihaz kimliği', desc: 'Modelinizi ve depolama kapasitesini seçin.' },
   { title: 'Durum & donanım', desc: 'Ekran ve batarya durumunu işaretleyin.' },
   { title: 'Kozmetik & belgeler', desc: 'Kasa görünümü ve kutu/fatura bilgisi.' },
-  { title: 'Teklif & iletişim', desc: 'Teklifinizi görün, sizi arayalım.' },
+  { title: 'Özet & WhatsApp', desc: 'Seçimlerinizi kontrol edip WhatsApp’tan teklif alın.' },
 ];
 
 function categoryOf(model: string): string {
@@ -57,11 +58,23 @@ function categoryOf(model: string): string {
   return 'Diğer';
 }
 
-function fmt(v: number): string {
-  return new Intl.NumberFormat('tr-TR').format(v);
+function labelOf(list: BuybackOption[], key: string): string {
+  return list.find((x) => x.key === key)?.label ?? '—';
 }
 
-const PHONE_RE = /^[0-9+\s()-]{7,20}$/;
+// Şablonu seçilen etiketlerle doldurup wa.me linkini üret.
+function buildWaLink(wa: WhatsappMeta, sel: Selection, o: BuybackOptions): string {
+  const values: Record<string, string> = {
+    model: sel.model,
+    storage: labelOf(o.storage, sel.storage),
+    screen: labelOf(o.screen, sel.screen_status),
+    battery: labelOf(o.battery, sel.battery_status),
+    cosmetic: labelOf(o.cosmetic, sel.cosmetic_status),
+    box: labelOf(o.box_invoice, sel.has_box_invoice ? 'yes' : 'no'),
+  };
+  const text = wa.template.replace(/\{(\w+)\}/g, (_m, k: string) => values[k] ?? '');
+  return `https://wa.me/${wa.number}?text=${encodeURIComponent(text)}`;
+}
 
 export default function BuybackWizard() {
   const [meta, setMeta] = useState<Meta | null>(null);
@@ -70,18 +83,15 @@ export default function BuybackWizard() {
   const [step, setStep] = useState(0);
   const [sel, setSel] = useState<Selection | null>(null);
 
-  // Canlı teklif
-  const [quote, setQuote] = useState<Quote | null>(null);
-  const [quoteLoading, setQuoteLoading] = useState(false);
-
-  // İletişim formu
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [kvkk, setKvkk] = useState(false);
-  const [touched, setTouched] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState('');
-  const [done, setDone] = useState<SubmitResult | null>(null);
+  // Adım değişiminde panel başına kaydır (özellikle mobil sticky "Devam" sonrası
+  // kullanıcı yeni adımın başlığını görsün). İlk render'da kaydırma.
+  const panelRef = useRef<HTMLDivElement>(null);
+  const didMount = useRef(false);
+  useEffect(() => {
+    if (!didMount.current) { didMount.current = true; return; }
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    panelRef.current?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+  }, [step]);
 
   // --- metadata yükle ---
   useEffect(() => {
@@ -122,69 +132,14 @@ export default function BuybackWizard() {
 
   const category = sel ? categoryOf(sel.model) : '';
 
-  // --- canlı teklif: seçim değişince POST /calculate ---
-  const selKey = sel ? JSON.stringify(sel) : '';
-  const reqId = useRef(0);
-  useEffect(() => {
-    if (!sel || !sel.model) return;
-    const id = ++reqId.current;
-    setQuoteLoading(true);
-    const ctrl = new AbortController();
-    fetch('/api/buyback/calculate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(sel),
-      signal: ctrl.signal,
-    })
-      .then((r) => (r.ok ? r.json() : Promise.reject(r)))
-      .then((j) => { if (id === reqId.current) { setQuote(j.data as Quote); setQuoteLoading(false); } })
-      .catch((e) => {
-        if (e?.name === 'AbortError') return;
-        if (id === reqId.current) { setQuote(null); setQuoteLoading(false); }
-      });
-    return () => ctrl.abort();
-  }, [selKey, sel]);
-
   const patch = useCallback((p: Partial<Selection>) => {
     setSel((s) => (s ? { ...s, ...p } : s));
   }, []);
 
-  // --- form doğrulama ---
-  const nameErr = name.trim().length < 2 ? 'Ad en az 2 karakter olmalı.' : '';
-  const phoneErr = !PHONE_RE.test(phone.trim()) ? 'Geçerli bir telefon numarası girin.' : '';
-  const canSubmit = !nameErr && !phoneErr && kvkk && !submitting;
-
-  async function onSubmit() {
-    setTouched(true);
-    setSubmitError('');
-    if (!sel || nameErr || phoneErr || !kvkk) return;
-    setSubmitting(true);
-    try {
-      const res = await fetch('/api/buyback/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...sel,
-          customer_name: name.trim(),
-          customer_phone: phone.trim(),
-          kvkk_consent: true,
-        }),
-      });
-      const j = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setSubmitError(j?.error ?? 'Talep gönderilemedi. Lütfen tekrar deneyin.');
-        return;
-      }
-      const result = j.data as SubmitResult;
-      setDone(result);
-      // WhatsApp'a yönlendir (yeni sekme)
-      if (result.whatsapp_url) window.open(result.whatsapp_url, '_blank', 'noopener');
-    } catch {
-      setSubmitError('Bağlantı hatası. Lütfen tekrar deneyin.');
-    } finally {
-      setSubmitting(false);
-    }
-  }
+  const waLink = useMemo(
+    () => (meta && sel ? buildWaLink(meta.whatsapp, sel, meta.options) : ''),
+    [meta, sel],
+  );
 
   if (metaError) {
     return (
@@ -199,213 +154,217 @@ export default function BuybackWizard() {
 
   const o = meta.options;
   const models = modelsByCat[category] ?? [];
+  const lastStep = STEPS.length - 1;
 
   return (
-    <div className="bw-grid">
-      {/* SOL: adım gövdesi */}
-      <div>
-        <div className="bw-panel">
-          {done ? (
-            <SuccessView result={done} currency={meta.currency} />
-          ) : (
-            <>
-              <div className="bw-step-head">
-                <span className="bw-step-index">ADIM {String(step + 1).padStart(2, '0')} / 04</span>
-                <h2 className="bw-step-title">{STEPS[step].title}</h2>
-                <p className="bw-step-desc">{STEPS[step].desc}</p>
-              </div>
+    <>
+      {/* ADIM ŞERİDİ — sıralı adım listesi; tamamlanan adımlara geri tıklanabilir.
+          (Sihirbaz adımları sekme değildir → tablist yerine liste + aria-current="step".) */}
+      <ol className="bw-steps" aria-label="Sihirbaz adımları">
+        {STEPS.map((s, i) => {
+          const state = i === step ? 'is-active' : i < step ? 'is-done' : '';
+          return (
+            <li key={s.title} className="bw-step-item">
+              <button
+                type="button"
+                aria-current={i === step ? 'step' : undefined}
+                aria-label={`Adım ${i + 1}: ${s.title}`}
+                className={'bw-step' + (state ? ' ' + state : '')}
+                disabled={i > step}
+                onClick={() => i <= step && setStep(i)}
+              >
+                <span className="bw-step-num">{String(i + 1).padStart(2, '0')}</span>
+                {s.title}
+              </button>
+            </li>
+          );
+        })}
+      </ol>
 
-              {/* ADIM 1 — model + kapasite */}
-              {step === 0 && (
-                <>
-                  <div className="bw-field">
-                    <span className="bw-field-label">Cihaz türü</span>
-                    <div className="bw-tabs">
-                      {categories.map((c) => (
-                        <button
-                          key={c}
-                          type="button"
-                          className={'bw-tab' + (category === c ? ' is-on' : '')}
-                          onClick={() => patch({ model: modelsByCat[c][0] })}
-                        >
-                          {c}
-                        </button>
-                      ))}
-                    </div>
-                    <span className="bw-field-label" style={{ marginTop: 4 }}>Model</span>
-                    <select
-                      className="field bw-select"
-                      value={sel.model}
-                      onChange={(e) => patch({ model: e.target.value })}
-                    >
-                      {models.map((m) => <option key={m} value={m}>{m}</option>)}
-                    </select>
+      <div className="bw-grid">
+        {/* SOL: adım gövdesi */}
+        <div>
+          <div className="bw-panel" ref={panelRef}>
+            <div className="bw-step-head">
+              <span className="bw-step-index">ADIM {String(step + 1).padStart(2, '0')} / 0{STEPS.length}</span>
+              <h2 className="bw-step-title">{STEPS[step].title}</h2>
+              <p className="bw-step-desc">{STEPS[step].desc}</p>
+            </div>
+
+            {/* ADIM 1 — model + kapasite */}
+            {step === 0 && (
+              <>
+                <div className="bw-field">
+                  <span className="bw-field-label">Cihaz türü</span>
+                  <div className="bw-tabs">
+                    {categories.map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        className={'bw-tab' + (category === c ? ' is-on' : '')}
+                        onClick={() => patch({ model: modelsByCat[c][0] })}
+                      >
+                        {c}
+                      </button>
+                    ))}
                   </div>
-                  <OptionGroup
-                    label="Depolama kapasitesi"
-                    options={o.storage}
-                    value={sel.storage}
-                    onChange={(k) => patch({ storage: k })}
-                  />
-                </>
-              )}
-
-              {/* ADIM 2 — ekran + batarya */}
-              {step === 1 && (
-                <>
-                  <OptionGroup
-                    label="Ekran durumu"
-                    options={o.screen}
-                    value={sel.screen_status}
-                    onChange={(k) => patch({ screen_status: k })}
-                  />
-                  <OptionGroup
-                    label="Batarya sağlığı"
-                    options={o.battery}
-                    value={sel.battery_status}
-                    onChange={(k) => patch({ battery_status: k })}
-                  />
-                </>
-              )}
-
-              {/* ADIM 3 — kozmetik + kutu/fatura */}
-              {step === 2 && (
-                <>
-                  <OptionGroup
-                    label="Kasa / kozmetik durumu"
-                    options={o.cosmetic}
-                    value={sel.cosmetic_status}
-                    onChange={(k) => patch({ cosmetic_status: k })}
-                  />
-                  <OptionGroup
-                    label="Kutu ve fatura"
-                    options={o.box_invoice}
-                    value={sel.has_box_invoice ? 'yes' : 'no'}
-                    onChange={(k) => patch({ has_box_invoice: k === 'yes' })}
-                  />
-                </>
-              )}
-
-              {/* ADIM 4 — iletişim formu */}
-              {step === 3 && (
-                <div className="bw-form">
-                  {submitError && <div className="bw-alert bw-alert-error">{submitError}</div>}
-
-                  <div className="bw-input-group">
-                    <label className="bw-input-label" htmlFor="bw-name">Ad Soyad</label>
-                    <input
-                      id="bw-name"
-                      className="field"
-                      value={name}
-                      maxLength={100}
-                      placeholder="Adınız ve soyadınız"
-                      onChange={(e) => setName(e.target.value)}
-                      onBlur={() => setTouched(true)}
-                    />
-                    {touched && nameErr && <span className="bw-field-err">{nameErr}</span>}
-                  </div>
-
-                  <div className="bw-input-group">
-                    <label className="bw-input-label" htmlFor="bw-phone">Telefon</label>
-                    <input
-                      id="bw-phone"
-                      className="field"
-                      value={phone}
-                      inputMode="tel"
-                      maxLength={20}
-                      placeholder="05XX XXX XX XX"
-                      onChange={(e) => setPhone(e.target.value)}
-                      onBlur={() => setTouched(true)}
-                    />
-                    {touched && phoneErr && <span className="bw-field-err">{phoneErr}</span>}
-                  </div>
-
-                  <div
-                    className={'bw-kvkk' + (kvkk ? ' is-on' : '')}
-                    role="checkbox"
-                    aria-checked={kvkk}
-                    tabIndex={0}
-                    onClick={() => setKvkk((v) => !v)}
-                    onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); setKvkk((v) => !v); } }}
+                  <span className="bw-field-label" style={{ marginTop: 4 }}>Model</span>
+                  <select
+                    className="field bw-select"
+                    value={sel.model}
+                    onChange={(e) => patch({ model: e.target.value })}
                   >
-                    <span className="bw-kvkk-box">
-                      {kvkk && (
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                          strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M5 12l4 4 10-10" />
-                        </svg>
-                      )}
-                    </span>
-                    <span className="bw-kvkk-text">
-                      <strong>KVKK aydınlatma metnini</strong> okudum; ad ve telefon bilgilerimin cihaz
-                      alım teklifi için işlenmesine ve benimle iletişime geçilmesine onay veriyorum.
-                    </span>
-                  </div>
+                    {models.map((m) => <option key={m} value={m}>{m}</option>)}
+                  </select>
                 </div>
-              )}
+                <OptionGroup
+                  label="Depolama kapasitesi"
+                  options={o.storage}
+                  value={sel.storage}
+                  onChange={(k) => patch({ storage: k })}
+                />
+              </>
+            )}
 
-              {/* navigasyon */}
-              <div className="bw-actions">
-                {step > 0 && (
-                  <button type="button" className="btn btn-secondary" onClick={() => setStep((s) => s - 1)}>
-                    Geri
-                  </button>
-                )}
-                <span className="bw-spacer" />
-                {step < 3 ? (
-                  <button type="button" className="btn btn-primary" onClick={() => setStep((s) => s + 1)}>
-                    Devam et
-                  </button>
-                ) : (
-                  <button type="button" className="btn btn-primary" disabled={!canSubmit} onClick={onSubmit}>
-                    {submitting ? 'Gönderiliyor…' : 'Teklifi onayla & WhatsApp’a geç'}
-                  </button>
-                )}
+            {/* ADIM 2 — ekran + batarya */}
+            {step === 1 && (
+              <>
+                <OptionGroup
+                  label="Ekran durumu"
+                  options={o.screen}
+                  value={sel.screen_status}
+                  onChange={(k) => patch({ screen_status: k })}
+                />
+                <OptionGroup
+                  label="Batarya sağlığı"
+                  options={o.battery}
+                  value={sel.battery_status}
+                  onChange={(k) => patch({ battery_status: k })}
+                />
+              </>
+            )}
+
+            {/* ADIM 3 — kozmetik + kutu/fatura */}
+            {step === 2 && (
+              <>
+                <OptionGroup
+                  label="Kasa / kozmetik durumu"
+                  options={o.cosmetic}
+                  value={sel.cosmetic_status}
+                  onChange={(k) => patch({ cosmetic_status: k })}
+                />
+                <OptionGroup
+                  label="Kutu ve fatura"
+                  options={o.box_invoice}
+                  value={sel.has_box_invoice ? 'yes' : 'no'}
+                  onChange={(k) => patch({ has_box_invoice: k === 'yes' })}
+                />
+              </>
+            )}
+
+            {/* ADIM 4 — "Sırada ne var?" süreç anlatımı (özet sağ panelde + mobil bar'da;
+                burada tekrar etmiyoruz → fiyatın yerini güven/şeffaflık dolduruyor). */}
+            {step === 3 && (
+              <div className="bw-review">
+                <p className="bw-review-lead">
+                  Seçimleriniz hazır. <strong>WhatsApp’tan teklif al</strong> dediğinizde seçimleriniz
+                  mesaja madde madde eklenir ve bize ulaşır.
+                </p>
+                <ol className="bw-next">
+                  {NEXT_STEPS.map((n, i) => (
+                    <li key={n.t} className="bw-next-row">
+                      <span className="bw-next-num">{i + 1}</span>
+                      <span className="bw-next-text">
+                        <strong>{n.t}</strong>
+                        <span>{n.d}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+                <p className="bw-next-eta">{RESPONSE_TIME_NOTE}</p>
               </div>
-            </>
-          )}
+            )}
+
+            {/* navigasyon */}
+            <div className="bw-actions">
+              {step > 0 && (
+                <button type="button" className="btn btn-secondary" onClick={() => setStep((s) => s - 1)}>
+                  Geri
+                </button>
+              )}
+              <span className="bw-spacer" />
+              {step < lastStep ? (
+                <button type="button" className="btn btn-primary" onClick={() => setStep((s) => s + 1)}>
+                  Devam et
+                </button>
+              ) : (
+                <a
+                  href={waLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn btn-wa"
+                  style={{ justifyContent: 'center' }}
+                >
+                  WhatsApp’tan teklif al
+                </a>
+              )}
+            </div>
+          </div>
         </div>
+
+        {/* SAĞ: seçim özeti (fiyatsız) */}
+        <aside>
+          <div className="bw-offer">
+            <div>
+              <div className="bw-offer-eyebrow">Seçim özeti</div>
+              <div className="bw-offer-model">{sel.model}</div>
+            </div>
+
+            <div className="bw-summary">
+              <SummaryRow k="Model" v={sel.model} />
+              <SummaryRow k="Depolama" v={labelOf(o.storage, sel.storage)} />
+              <SummaryRow k="Ekran" v={labelOf(o.screen, sel.screen_status)} />
+              <SummaryRow k="Batarya" v={labelOf(o.battery, sel.battery_status)} />
+              <SummaryRow k="Kozmetik" v={labelOf(o.cosmetic, sel.cosmetic_status)} />
+              <SummaryRow k="Kutu/Fatura" v={labelOf(o.box_invoice, sel.has_box_invoice ? 'yes' : 'no')} />
+            </div>
+
+            <a
+              href={waLink}
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn-wa"
+              style={{ justifyContent: 'center' }}
+            >
+              WhatsApp’tan teklif al
+            </a>
+
+            <p className="bw-offer-note">
+              Seçimleriniz WhatsApp mesajına madde madde eklenir. Kesin fiyat teklifi, cihazınız
+              incelendikten sonra netleşir.
+            </p>
+          </div>
+        </aside>
       </div>
 
-      {/* SAĞ: canlı teklif paneli */}
-      <aside>
-        <div className="bw-offer">
-          <div>
-            <div className="bw-offer-eyebrow">Tahmini teklif</div>
-            <div className="bw-offer-model">{sel.model}</div>
-          </div>
-
-          {quote ? (
-            <div className="bw-offer-range">
-              {fmt(quote.offered_price_min)}<span className="sep">–</span>{fmt(quote.offered_price_max)}
-              <span className="cur">{quote.currency}</span>
-            </div>
-          ) : quoteLoading ? (
-            <div className="bw-offer-loading">Hesaplanıyor…</div>
-          ) : (
-            <div className="bw-offer-loading">Seçimlerinizi yapın, teklif anında güncellenir.</div>
-          )}
-
-          <div className="bw-summary">
-            <SummaryRow k="Model" v={sel.model} />
-            <SummaryRow k="Depolama" v={labelOf(o.storage, sel.storage)} />
-            <SummaryRow k="Ekran" v={labelOf(o.screen, sel.screen_status)} />
-            <SummaryRow k="Batarya" v={labelOf(o.battery, sel.battery_status)} />
-            <SummaryRow k="Kozmetik" v={labelOf(o.cosmetic, sel.cosmetic_status)} />
-            <SummaryRow k="Kutu/Fatura" v={sel.has_box_invoice ? 'Var' : 'Yok'} />
-          </div>
-
-          <p className="bw-offer-note">
-            Bu bir ön tahmindir. Kesin teklif, cihazınız incelendikten sonra netleşir.
-          </p>
+      {/* MOBİL STICKY BAR (≤880px) — model + kompakt özet + Devam/WhatsApp */}
+      <div className="bw-mbar">
+        <div className="bw-mbar-info">
+          <span className="bw-mbar-model">{sel.model}</span>
+          <span className="bw-mbar-sub">{labelOf(o.storage, sel.storage)} · {category}</span>
         </div>
-      </aside>
-    </div>
+        {step < lastStep ? (
+          <button type="button" className="btn btn-primary bw-mbar-cta" onClick={() => setStep((s) => s + 1)}>
+            Devam
+          </button>
+        ) : (
+          <a href={waLink} target="_blank" rel="noreferrer" className="btn btn-wa bw-mbar-cta">
+            WhatsApp’tan teklif al
+          </a>
+        )}
+      </div>
+    </>
   );
-}
-
-function labelOf(list: BuybackOption[], key: string): string {
-  return list.find((x) => x.key === key)?.label ?? '—';
 }
 
 function SummaryRow({ k, v }: { k: string; v: string }) {
@@ -413,30 +372,6 @@ function SummaryRow({ k, v }: { k: string; v: string }) {
     <div className="bw-summary-row">
       <span className="bw-summary-k">{k}</span>
       <span className="bw-summary-v">{v}</span>
-    </div>
-  );
-}
-
-function SuccessView({ result, currency }: { result: SubmitResult; currency: string }) {
-  return (
-    <div className="bw-success">
-      <span className="bw-success-mark">
-        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M5 12l4 4 10-10" />
-        </svg>
-      </span>
-      <h2 className="bw-success-title">Talebiniz alındı</h2>
-      <p className="bw-success-text">
-        <strong>{result.model}</strong> için ön teklifiniz{' '}
-        <strong>{fmt(result.offered_price_min)}–{fmt(result.offered_price_max)} {currency}</strong>.
-        WhatsApp sekmesi açıldı; açılmadıysa aşağıdaki butonu kullanın. Ekibimiz en kısa sürede sizinle iletişime geçecek.
-      </p>
-      {result.whatsapp_url && (
-        <a href={result.whatsapp_url} target="_blank" rel="noreferrer" className="btn btn-wa" style={{ justifyContent: 'center' }}>
-          WhatsApp’tan devam et
-        </a>
-      )}
     </div>
   );
 }

@@ -1,7 +1,8 @@
 {
   "whatsapp": {
     "number": "905345913671",
-    "message_template": "Merhaba PhoneLab! {model} cihazım için {issue} tamir talebi oluşturmak istiyorum. Tahmini fiyat: {price_range} TL"
+    "message_template": "Merhaba PhoneLab! {model} cihazım için {issue} tamir talebi oluşturmak istiyorum. Tahmini fiyat: {price_range} TL",
+    "buyback_template": "Merhaba PhoneLab! Cihazımı satmak istiyorum.\n• Model: {model}\n• Depolama: {storage}\n• Ekran durumu: {screen}\n• Batarya: {battery}\n• Kozmetik/Dış görünüm: {cosmetic}\n• Kutu/Fatura: {box}\nFiyat teklifinizi rica ederim."
   },
   "issue_types": {
     "screen_broken": {

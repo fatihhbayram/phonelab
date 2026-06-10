@@ -1,0 +1,30 @@
+/* PhoneLab — Hukuki statik sayfalar (gizlilik / kullanım koşulları) stilleri.
+   Token'lar globals.css'ten gelir. Sınıf öneki: lg- */
+
+.lg-page { min-height: 100vh; background: var(--bg-1); color: var(--fg-1); }
+
+.lg-body { max-width: 760px; margin: 0 auto; padding: 56px 24px 80px; }
+.lg-title {
+  font-size: clamp(28px, 4vw, 40px); font-weight: 600; letter-spacing: -0.03em;
+  line-height: 1.1; margin: 0 0 8px; color: var(--fg-1);
+}
+.lg-updated { font-family: var(--font-mono); font-size: 13px; color: var(--fg-3); margin: 0 0 36px; }
+
+.lg-content { display: flex; flex-direction: column; gap: 26px; }
+.lg-content h2 {
+  font-size: 19px; font-weight: 600; letter-spacing: -0.01em; color: var(--fg-1);
+  margin: 12px 0 0;
+}
+.lg-content p { font-size: 15px; line-height: 1.65; color: var(--fg-2); margin: 8px 0 0; }
+.lg-content ul { margin: 8px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 7px; }
+.lg-content li { font-size: 15px; line-height: 1.55; color: var(--fg-2); }
+.lg-content a { color: var(--brand); }
+.lg-content strong { color: var(--fg-1); font-weight: 600; }
+
+.lg-foot { border-top: 1px solid var(--line-1); }
+.lg-foot-inner {
+  max-width: 760px; margin: 0 auto; padding: 24px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  font-size: 13px; color: var(--fg-3);
+}
+.lg-foot-inner a { color: var(--fg-2); }
